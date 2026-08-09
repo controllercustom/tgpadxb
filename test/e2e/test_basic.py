@@ -441,3 +441,135 @@ def test_two_clients_sticky_lthumb_rthumb_four_step(harness, two_clients):
     assert w.wait_for(ecodes.EV_KEY, candidate_codes('*LThumb'), 1), "step3 LThumb still on (A holds)"
     a.send('~*LThumb'); time.sleep(0.2)
     assert w.wait_for(ecodes.EV_KEY, candidate_codes('*LThumb'), 0, timeout=4.0), "step4 LThumb off"
+
+
+# --- pyusb OUT packet injection helpers (v1.2.0 rumble/LED API) ----------
+
+def _find_xinput_dev():
+    """Find the XInput USB device using pyusb."""
+    import usb.core as core
+    results = core.find(find_all=True, idVendor=0x045E, idProduct=0x028E)  # type: ignore[assignment]
+    for dev in results:  # type: ignore[arg-type]
+        return dev
+    return None
+
+
+def _inject_usb_packet(data):
+    """Inject a raw OUT report to the board via endpoint 0x01.
+
+    XInput OUT packet layout (ESP32XInput v1.2.0 pollRumble):
+      [0] type byte   — 0x00 = rumble, 0x01 = LED
+      [1] reserved
+      [2] data        — led index for type=LED, unused for type=rumble
+      [3] left motor  (rumble)
+      [4] right motor (rumble)
+
+    Minimum length: 5 bytes for rumble, 3 bytes for LED.
+
+    NOTE: Do NOT call dev.set_configuration() — it triggers a USB reset on the
+    ESP32-S3 that unmounts TinyUSB and stops pollRumble from draining packets.
+    """
+    import usb.core as core
+    import usb.util as util
+    dev = _find_xinput_dev()  # type: ignore[assignment]
+    if dev is None:
+        pytest.skip("XInput USB device not found")
+    try:
+        if dev.is_kernel_driver_active(0):  # type: ignore[attr-defined]
+            dev.detach_kernel_driver(0)  # type: ignore[attr-defined]
+        util.claim_interface(dev, 0)  # type: ignore[arg-type]
+        # Do NOT call set_configuration — it resets the ESP32-S3!
+        dev.write(0x01, data, timeout=2000)  # type: ignore[attr-defined]
+    finally:
+        try:
+            util.release_interface(dev, 0)  # type: ignore[arg-type]
+        except Exception:
+            pass
+
+
+def _wait_ws_message(ws, prefix, timeout=3.0, poll=0.05):
+    """Wait for a WebSocket message starting with *prefix*.
+
+    Returns the full message string or None on timeout.
+    Drains any prior messages first.
+    """
+    import select
+    deadline = time.time() + timeout
+    # Drain existing buffered messages
+    ws.settimeout(0.1)
+    while True:
+        try:
+            msg = ws.recv()
+            if isinstance(msg, bytes):
+                msg = msg.decode('utf-8', errors='replace')
+            if msg.startswith(prefix):
+                return msg
+        except Exception:
+            break
+
+    ws.settimeout(poll * 2)
+    while time.time() < deadline:
+        try:
+            msg = ws.recv()
+            if isinstance(msg, bytes):
+                msg = msg.decode('utf-8', errors='replace')
+            if msg.startswith(prefix):
+                return msg
+        except Exception:
+            pass
+    return None
+
+
+@pytest.mark.e2e
+def test_led_packet_injection():
+    """Send an LED OUT packet via USB and verify #LED broadcast on WebSocket."""
+    dev = _find_xinput_dev()
+    if dev is None:
+        pytest.skip("XInput USB device not found")
+
+    ws = open_ws()
+    try:
+        led_index = 2
+        pkt = bytes([0x01, 0x00, led_index])
+        _inject_usb_packet(pkt)
+        msg = _wait_ws_message(ws, '#LED:')
+        assert msg is not None, "No #LED broadcast after LED OUT packet"
+        assert msg == f'#LED:{led_index}', f"Expected #LED:{led_index}, got {msg}"
+    finally:
+        ws.close()
+
+
+@pytest.mark.e2e
+def test_rumble_left_motor():
+    """Send a rumble OUT packet with left motor and verify #RUMBLE broadcast."""
+    dev = _find_xinput_dev()
+    if dev is None:
+        pytest.skip("XInput USB device not found")
+
+    ws = open_ws()
+    try:
+        pkt = bytes([0x00, 0x00, 0x00, 200, 0])
+        _inject_usb_packet(pkt)
+        msg = _wait_ws_message(ws, '#RUMBLE:')
+        assert msg is not None, "No #RUMBLE broadcast after rumble OUT packet"
+        assert '200' in msg, f"Expected left motor 200 in {msg}"
+    finally:
+        ws.close()
+
+
+@pytest.mark.e2e
+def test_rumble_right_motor():
+    """Send a rumble OUT packet with right motor and verify #RUMBLE broadcast."""
+    dev = _find_xinput_dev()
+    if dev is None:
+        pytest.skip("XInput USB device not found")
+
+    ws = open_ws()
+    try:
+        pkt = bytes([0x00, 0x00, 0x00, 0, 150])
+        _inject_usb_packet(pkt)
+        msg = _wait_ws_message(ws, '#RUMBLE:')
+        assert msg is not None, "No #RUMBLE broadcast after rumble OUT packet"
+        assert '150' in msg, f"Expected right motor 150 in {msg}"
+    finally:
+        ws.close()

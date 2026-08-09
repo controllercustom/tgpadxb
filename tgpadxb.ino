@@ -23,7 +23,7 @@
 #include "tusb.h"
 #include <cstdarg>
 
-#define VERSION "1.0.1"
+#define VERSION "1.0.2"
 
 // Uncomment next line and change the password to enable OTA authentication:
 // #define OTA_PASS "your-password-here"

@@ -54,7 +54,7 @@ arduino-cli compile --profile esp32s3 --output-dir /tmp/tgap_ota_build . && \
 - **OTA authentication**: Uncomment `#define OTA_PASS "your-password-here"` in `tgpadxb.ino` to enable password-protected OTA (both ArduinoOTA and web-based). When enabled, append `--upload-field password=<pass>` to OTA upload commands and use basic auth user `admin` for web OTA.
 - **Detecting successful OTA**: Do NOT parse espota.py or curl output — both produce `\r` progress bars that get truncated by tool output limits. Always check exit code (`$?`) instead: 0 = success, non-zero = failure. Append `; echo "EXIT=$?"` to verify.
 - **USB enumerates as vendor-class XInput** (no CDC serial at runtime). Use `Serial0` for debug output on boards with CP210x bridge. For AtomS3, internal UART routing may still allow Serial — test both boards.
-- **`lib/WiFiManager`, `lib/WebSockets`, `lib/M5GFX` are git submodules.** After a fresh clone run `git submodule update --init --recursive`. `lib/ESP32XInput` is a copy of `~/ESP32XInput/src/`. Profiles handle all of them via `dir:` entries — no manual `--library` flags needed when using profiles.
+- **`lib/WiFiManager`, `lib/WebSockets`, `lib/M5GFX`, `lib/ESP32XInput` are git submodules.** After a fresh clone run `git submodule update --init --recursive`. To bump ESP32XInput: enter the directory and pull from GitHub (`cd lib/ESP32XInput && git pull`). Profiles handle all of them via `dir:` entries — no manual `--library` flags needed when using profiles.
 - **AtomS3 serial port**: `/dev/ttyACM0` only appears when the board is in download mode (BOOT button held). When running normally it disappears from USB and shows up as an XInput gamepad + WiFi device.
 
 ## Testing

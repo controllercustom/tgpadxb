@@ -19,7 +19,7 @@ const char index_html[] PROGMEM = R"rawliteral(
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <title>TGPad-XB 1.0.1 XInput Gamepad</title>
+    <title>TGPad-XB 1.0.2 XInput Gamepad</title>
     <style>
         :root {
             --bg-chassis: #3a3f47;
@@ -220,14 +220,15 @@ const char index_html[] PROGMEM = R"rawliteral(
             pointer-events: none;
         }
 
-        /* ---- XInput LED panel (top-center) ---- */
+        /* ---- XInput LED panel + VU-meter rumble indicators (top-center) ---- */
         #led-panel {
             position: absolute;
             left: 50%; top: 2%;
             transform: translateX(-50%);
             display: flex;
+            align-items: center;
             gap: 6px;
-            padding: 4px 8px;
+            padding: 4px 10px;
             background: rgba(0,0,0,0.35);
             border-radius: 10px;
             z-index: 10;
@@ -243,6 +244,25 @@ const char index_html[] PROGMEM = R"rawliteral(
             background: #3ddc2f;
             box-shadow: 0 0 8px rgba(61,220,47,0.9);
         }
+        /* VU-meter rumble bars — linear scale, anchored at LED panel center */
+        .vu-track {
+            width: 13vw; height: 8px;
+            background: #333;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+        .vu-fill {
+            position: absolute;
+            top: 0; bottom: 0;
+            width: 0%;
+            transition: none;
+            background: linear-gradient(90deg, #3ddc2f, #ffd600);
+        }
+        /* Left meter fills rightward (base at LED side) */
+        .vu-left .vu-fill { left: auto; right: 0; }
+        /* Right meter fills leftward (base at LED side) — mirrored via transform */
+        .vu-right .vu-fill { left: 0; right: auto; background: linear-gradient(270deg, #3ddc2f, #ffd600); }
 
         .stick-base {
             background-color: #cfcfcf;
@@ -318,10 +338,12 @@ const char index_html[] PROGMEM = R"rawliteral(
         <div>Rotate device to landscape</div>
     </div>
     <div id="led-panel">
+        <div class="vu-track vu-left"><div class="vu-fill" data-rumble="left"></div></div>
         <div class="xinput-led" data-led="0"></div>
         <div class="xinput-led" data-led="1"></div>
         <div class="xinput-led" data-led="2"></div>
         <div class="xinput-led" data-led="3"></div>
+        <div class="vu-track vu-right"><div class="vu-fill" data-rumble="right"></div></div>
     </div>
     <button id="gear-btn">&#9881;</button>
     <div id="config-overlay" class="config-overlay">
@@ -368,6 +390,21 @@ function applyLed(index) {
     });
 }
 
+function applyRumble(leftVal, rightVal) {
+    var vL = Math.max(0, Math.min(255, leftVal));
+    var vR = Math.max(0, Math.min(255, rightVal));
+
+    _vuSetFill('left', vL);
+    _vuSetFill('right', vR);
+}
+
+function _vuSetFill(side, val) {
+    var el = document.querySelector('[data-rumble="' + side + '"]');
+    if (!el) return;
+    var pct = (val / 255 * 100).toFixed(1);
+    el.style.width = pct + '%';
+}
+
 function connectWS() {
     ws = new WebSocket('ws://' + location.hostname + ':81/');
     ws.onopen  = () => { resyncSticky(); resyncCC(); };
@@ -377,6 +414,8 @@ function connectWS() {
         } else if (d.startsWith('#LED:')) {
             applyLed(parseInt(d.substring(5), 10) || 4);
         } else if (d.startsWith('#RUMBLE:')) {
+            var parts = d.substring(8).split(',');
+            applyRumble(parseInt(parts[0], 10) || 0, parseInt(parts[1], 10) || 0);
         } else if (d.startsWith('#NAMING:')) {
             setButtonNaming(d.substring(8), true);
         }
