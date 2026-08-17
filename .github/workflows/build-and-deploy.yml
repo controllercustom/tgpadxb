@@ -8,6 +8,8 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 concurrency:
   group: pages
@@ -31,7 +33,14 @@ jobs:
       - name: Install ESP32 core
         run: |
           arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
-          arduino-cli core install esp32:esp32@3.3.10
+          arduino-cli core install esp32:esp32@3.3.10 esp32:esp32@3.2.0
+
+      - name: Install libraries
+        run: |
+          arduino-cli lib install WiFiManager@2.0.17
+          arduino-cli lib install WebSockets@2.7.2
+          arduino-cli lib install M5GFX@0.2.26
+          arduino-cli lib install "GFX Library for Arduino@1.6.0"
 
       - name: Build AtomS3
         run: arduino-cli compile --profile atoms3 . --output-dir build/atoms3
@@ -154,3 +163,24 @@ jobs:
           git add -A
           git commit -m "Deploy $VERSION" --allow-empty
           git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/gh-pages --force
+        # NOTE: gh-pages push is a fallback for branch-based Pages.
+        # Primary deployment is via actions/deploy-pages below.
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v6
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: deploy
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
