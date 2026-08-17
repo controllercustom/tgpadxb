@@ -19,7 +19,7 @@ const char index_html[] PROGMEM = R"rawliteral(
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <title>TGPad-XB 1.0.2 XInput Gamepad</title>
+    <title>TGPad-XB 1.1.0 XInput Gamepad</title>
     <style>
         :root {
             --bg-chassis: #3a3f47;
