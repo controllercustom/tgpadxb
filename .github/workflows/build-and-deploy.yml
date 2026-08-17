@@ -39,6 +39,15 @@ jobs:
       - name: Build ESP32-S3
         run: arduino-cli compile --profile esp32s3 . --output-dir build/esp32s3
 
+      - name: Build T-Dongle-S3
+        run: arduino-cli compile --profile tdongle_s3 . --output-dir build/tdongle_s3
+
+      - name: Build T-Dongle-S3-Plus
+        run: arduino-cli compile --profile tdongle_s3_plus . --output-dir build/tdongle_s3_plus --build-property compiler.cpp.extra_flags=-DT_DONGLE_S3_PLUS
+
+      - name: Build Waveshare
+        run: arduino-cli compile --profile waveshare . --output-dir build/waveshare --build-property compiler.cpp.extra_flags=-DT_WAVESHARE_154
+
       - name: Determine version
         id: version
         run: |
@@ -81,7 +90,7 @@ jobs:
             cp gh-pages/firmware.json deploy/firmware.json
           fi
 
-          for board in atoms3 esp32s3; do
+          for board in atoms3 esp32s3 tdongle_s3 tdongle_s3_plus waveshare; do
             bdir="build/${board}"
             fdir="deploy/firmware/${VERSION}/${board}"
             mkdir -p "$fdir"
@@ -120,7 +129,10 @@ jobs:
               'flashLayout': FLASH_LAYOUT,
               'boards': {
                   'esp32s3': {'name': 'Generic ESP32-S3 Dev Module'},
-                  'atoms3':   {'name': 'M5Stack AtomS3'}
+                  'atoms3':   {'name': 'M5Stack AtomS3'},
+                  'tdongle_s3':      {'name': 'LilyGo T-Dongle-S3'},
+                  'tdongle_s3_plus': {'name': 'LilyGo T-Dongle-S3-Plus'},
+                  'waveshare':       {'name': 'Waveshare ESP32-S3-Touch-LCD-1.54'}
               }
           }
           with open('deploy/firmware.json', 'w') as f:
