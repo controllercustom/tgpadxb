@@ -5,7 +5,7 @@ profiles:
       - platform: esp32:esp32 (3.3.10)
         platform_index_url: https://espressif.github.io/arduino-esp32/package_esp32_index.json
     libraries:
-      - dir: lib/ESP32XInput/src
+      - dir: lib/ArduinoX360-tinyusb/src
       - dir: lib/WiFiManager
       - dir: lib/WebSockets
       - dir: lib/M5GFX
@@ -16,7 +16,7 @@ profiles:
       - platform: esp32:esp32 (3.3.10)
         platform_index_url: https://espressif.github.io/arduino-esp32/package_esp32_index.json
     libraries:
-      - dir: lib/ESP32XInput/src
+      - dir: lib/ArduinoX360-tinyusb/src
       - dir: lib/WiFiManager
       - dir: lib/WebSockets
 
@@ -29,7 +29,7 @@ profiles:
     port_config:
       baudrate: 115200
     libraries:
-      - dir: lib/ESP32XInput/src
+      - dir: lib/ArduinoX360-tinyusb/src
       - dir: lib/WiFiManager
       - dir: lib/WebSockets
       - dir: lib/TFT_eSPI
@@ -43,7 +43,7 @@ profiles:
     port_config:
       baudrate: 115200
     libraries:
-      - dir: lib/ESP32XInput/src
+      - dir: lib/ArduinoX360-tinyusb/src
       - dir: lib/WiFiManager
       - dir: lib/WebSockets
       - dir: lib/TFT_eSPI
@@ -62,7 +62,7 @@ profiles:
     port_config:
       baudrate: 115200
     libraries:
-      - dir: lib/ESP32XInput/src
+      - dir: lib/ArduinoX360-tinyusb/src
       - dir: lib/WiFiManager
       - dir: lib/WebSockets
       - GFX Library for Arduino (1.6.0)

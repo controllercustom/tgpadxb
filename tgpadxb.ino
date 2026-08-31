@@ -11,7 +11,7 @@
 #include <WebSocketsServer.h>
 #include <Preferences.h>
 #include <Update.h>
-#include <ESP32XInput.h>
+#include <ArduinoX360.h>
 
 #ifdef ARDUINO_M5STACK_ATOMS3
 #include <M5GFX.h>
@@ -82,7 +82,7 @@ public:
 #include "tusb.h"
 #include <cstdarg>
 
-#define VERSION "1.1.0"
+#define VERSION "1.1.1"
 
 // Uncomment next line and change the password to enable OTA authentication:
 // #define OTA_PASS "your-password-here"
@@ -160,7 +160,7 @@ static void debugPrintf(const char* fmt, ...) {
 }
 
 static void resetAllState() {
-  ESP32XInput.releaseAll();
+  ArduinoX360.releaseAll();
   memset(btnRef, 0, sizeof(btnRef));
   for (uint8_t i = 0; i < MAX_WS_CLIENTS; i++) {
     ClientState c;
@@ -175,7 +175,7 @@ static void recomputeAndSend(unsigned long now) {
     for (uint8_t i = 0; i < MAX_WS_CLIENTS; i++) {
       if (clients[i].active && clients[i].btn[b]) btnRef[b]++;
     }
-    ESP32XInput.setButton((ESP32XInputClass::Button)b, btnRef[b] > 0);
+    ArduinoX360.setButton((ArduinoX360Class::Button)b, btnRef[b] > 0);
   }
 
   // Sticks / d-pad: freshest active contributor.
@@ -208,27 +208,27 @@ static void recomputeAndSend(unsigned long now) {
     else if (c.axisTs >= rtTs) { rtTs = c.axisTs; rtFinal = c.rtVal; }
   }
 
-  ESP32XInput.setStickLeft(lx, ly);
-  ESP32XInput.setStickRight(rx, ry);
-  ESP32XInput.setHat(dpadDir);
-  ESP32XInput.setLeftTrigger(ltFinal);
-  ESP32XInput.setRightTrigger(rtFinal);
+  ArduinoX360.setStickLeft(lx, ly);
+  ArduinoX360.setStickRight(rx, ry);
+  ArduinoX360.setHat(dpadDir);
+  ArduinoX360.setLeftTrigger(ltFinal);
+  ArduinoX360.setRightTrigger(rtFinal);
 }
 
 // Map WS tokens (with '*' prefix) to XInput button enum index.
 static uint8_t btnIndex(const char* key) {
   if (key[0] != '*') return 255;
-  if (strcmp(key, "*A") == 0) return ESP32XInputClass::Button::A;
-  if (strcmp(key, "*B") == 0) return ESP32XInputClass::Button::B;
-  if (strcmp(key, "*X") == 0) return ESP32XInputClass::Button::X;
-  if (strcmp(key, "*Y") == 0) return ESP32XInputClass::Button::Y;
-  if (strcmp(key, "*LB") == 0) return ESP32XInputClass::Button::LEFT_SHOULDER;
-  if (strcmp(key, "*RB") == 0) return ESP32XInputClass::Button::RIGHT_SHOULDER;
-  if (strcmp(key, "*Start") == 0) return ESP32XInputClass::Button::START;
-  if (strcmp(key, "*Back") == 0) return ESP32XInputClass::Button::BACK;
-  if (strcmp(key, "*LThumb") == 0) return ESP32XInputClass::Button::LEFT_THUMB;
-  if (strcmp(key, "*RThumb") == 0) return ESP32XInputClass::Button::RIGHT_THUMB;
-  if (strcmp(key, "*Xbox") == 0) return ESP32XInputClass::Button::XBOX;
+  if (strcmp(key, "*A") == 0) return ArduinoX360Class::Button::A;
+  if (strcmp(key, "*B") == 0) return ArduinoX360Class::Button::B;
+  if (strcmp(key, "*X") == 0) return ArduinoX360Class::Button::X;
+  if (strcmp(key, "*Y") == 0) return ArduinoX360Class::Button::Y;
+  if (strcmp(key, "*LB") == 0) return ArduinoX360Class::Button::LEFT_SHOULDER;
+  if (strcmp(key, "*RB") == 0) return ArduinoX360Class::Button::RIGHT_SHOULDER;
+  if (strcmp(key, "*Start") == 0) return ArduinoX360Class::Button::START;
+  if (strcmp(key, "*Back") == 0) return ArduinoX360Class::Button::BACK;
+  if (strcmp(key, "*LThumb") == 0) return ArduinoX360Class::Button::LEFT_THUMB;
+  if (strcmp(key, "*RThumb") == 0) return ArduinoX360Class::Button::RIGHT_THUMB;
+  if (strcmp(key, "*Xbox") == 0) return ArduinoX360Class::Button::XBOX;
   return 255;
 }
 
@@ -558,7 +558,7 @@ void setup() {
 #endif
   bootMsg("Starting...", nullptr);
 
-  ESP32XInput.begin(0x045E, 0x028E);
+  ArduinoX360.begin(0x045E, 0x028E);
 
   {
     Preferences p;
@@ -626,14 +626,14 @@ void setup() {
   }
 
   // LED callback → broadcast to web UI light panel
-  ESP32XInput.onLed([](uint8_t ledIndex) {
+  ArduinoX360.onLed([](uint8_t ledIndex) {
     char buf[16];
     snprintf(buf, sizeof(buf), "#LED:%d", ledIndex);
     webSocket.broadcastTXT((const uint8_t*)buf, strlen(buf));
   });
 
   // Rumble callback → broadcast to web UI for haptic feedback
-  ESP32XInput.onRumble([](uint8_t leftMotor, uint8_t rightMotor) {
+  ArduinoX360.onRumble([](uint8_t leftMotor, uint8_t rightMotor) {
     char buf[32];
     snprintf(buf, sizeof(buf), "#RUMBLE:%d,%d", leftMotor, rightMotor);
     webSocket.broadcastTXT((const uint8_t*)buf, strlen(buf));
@@ -732,7 +732,7 @@ void loop() {
   handleWdt(now);
   handleResetButton(now);
 
-  ESP32XInput.isConnected();
-  ESP32XInput.send();
-  ESP32XInput.pollRumble();
+  ArduinoX360.isConnected();
+  ArduinoX360.send();
+  ArduinoX360.pollRumble();
 }
